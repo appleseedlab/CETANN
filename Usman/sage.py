@@ -80,7 +80,10 @@ try:
     model.eval()
     out = model(data)
     pred = out.argmax(dim=1)
-    print("Predictions:", pred)
+
+    # Print detailed predictions
+    for node_id, prediction in enumerate(pred):
+        print(f"Node {node_id} (Paper ID): Predicted Class: {prediction.item()}")
 
     # Optionally, return predictions
     def get_predictions():
@@ -90,11 +93,11 @@ try:
 
     # Get and print predictions
     predictions = get_predictions()
-    print("Predictions:", predictions)
+    for node_id, prediction in enumerate(predictions):
+        print(f"Node {node_id} (Paper ID): Predicted Class: {prediction.item()}")
 except RuntimeError as e:
     print(f"Error getting predictions: {e}")
     raise
 
 
-#see if graph ml is supported by graph sage
-#also want to be able to have entity predictions
+#    nx_graph = nx.read_graphml('C:\\Users\\xxbla\\OneDrive\\Documents\\VSCode\\CETA\\CETANN\\Usman\\withoutEdge.graphml')
