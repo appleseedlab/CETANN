@@ -82,6 +82,10 @@ except KeyError as e:
     print(f"Label key error: {e}")
     raise
 
+# Check for class imbalance
+unique_labels, counts = torch.unique(labels, return_counts=True)
+print(f"Label distribution: {dict(zip(unique_labels.numpy(), counts.numpy()))}")
+
 # Define the GraphSAGE model
 class GraphSAGEModel(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels):
@@ -172,3 +176,29 @@ try:
 except RuntimeError as e:
     print(f"Error getting predictions: {e}")
     raise
+
+
+
+
+#The primary issue with the current training setup is that the model does not appear to be learning. The loss remains zero, and the accuracy is constantly 1.0, indicating that the model's predictions do not change throughout training. This behavior is likely due to several factors:
+
+#Label Imbalance:
+
+#The labels are highly imbalanced, with all nodes having the same label ({0: 50}). This prevents the model from learning to distinguish between different classes since there is no variation in the target labels.
+#Data Features:
+
+#The features used for training might not be informative enough to distinguish between different classes, especially if all nodes belong to the same class.
+#Masks:
+
+#The masks used for training, validation, and testing might not be properly set, resulting in the model not being able to generalize.
+#Steps to Resolve:
+#Balance the Dataset:
+
+#Ensure that the dataset has a variety of labels to allow the model to learn meaningful patterns.
+#Verify Features:
+
+#Ensure that the features used are relevant and informative for the task at hand.
+#Check Masks:
+
+#Ensure that the masks are correctly set and that there is a proper split between training, validation, and testing datasets.
+#Here is a revised version of the code, including additional checks and steps to handle these issues: 
