@@ -4,13 +4,12 @@ import networkx as nx
 import dgl
 from dgl.nn.pytorch.conv import SAGEConv
 import numpy as np
-
-# Verify NumPy version
-print(f"NumPy version: {np.__version__}")
+import random
 
 # Load the GraphML file
+graphml_file = 'C:\\Users\\xxbla\\OneDrive\\Documents\\VSCode\\CETA\\CETANN\\Usman\\filtered_export.graphml'
 try:
-    nx_graph = nx.read_graphml('C:\\Users\\xxbla\\OneDrive\\Documents\\VSCode\\CETA\\CETANN\\Usman\\withoutEdge.graphml')
+    nx_graph = nx.read_graphml(graphml_file)
 except Exception as e:
     print(f"Error loading GraphML file: {e}")
     raise
@@ -35,7 +34,7 @@ def preprocess_attributes(graph, attrs):
         elif sample_value is None or sample_value == '':
             nx.set_node_attributes(graph, {node: -1 for node in values.keys()}, attr)
 
-node_attrs = ['ID_RSSD', 'labels', 'BHC_IND', 'BROAD_REG_CD', 'CHTR_AUTH_CD', 'CHTR_TYPE_CD']  # Add more relevant attributes
+node_attrs = ['ID_RSSD', 'labels', 'BHC_IND', 'BROAD_REG_CD', 'CHTR_AUTH_CD', 'CHTR_TYPE_CD']
 optional_attrs = ['train_mask', 'val_mask', 'test_mask']
 
 # Preprocess all node attributes to ensure they are numeric
@@ -54,7 +53,7 @@ except Exception as e:
     raise
 
 # Use multiple features
-feature_keys = ['ID_RSSD', 'BHC_IND', 'BROAD_REG_CD', 'CHTR_AUTH_CD', 'CHTR_TYPE_CD']  # List of features
+feature_keys = ['ID_RSSD', 'BHC_IND', 'BROAD_REG_CD', 'CHTR_AUTH_CD', 'CHTR_TYPE_CD']
 
 # Ensure node features are available
 try:
@@ -104,24 +103,21 @@ model = GraphSAGEModel(g.ndata['feat'].shape[1], 16, len(set(labels.numpy())))
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
 criterion = torch.nn.CrossEntropyLoss()
 
-# Split data into train, validation, and test sets (handling missing attributes)
-def create_mask(attr_name):
-    if attr_name in g.ndata:
-        return g.ndata[attr_name].bool()
-    else:
-        return torch.zeros(g.number_of_nodes(), dtype=torch.bool)
+# Split data into train and test sets
+num_nodes = g.number_of_nodes()
+num_train = int(num_nodes * 0.8)
+num_test = 100  # Fixed number of test companies
 
-train_mask = create_mask('train_mask')
-val_mask = create_mask('val_mask')
-test_mask = create_mask('test_mask')
+# Generate random indices for train and test sets
+all_indices = list(range(num_nodes))
+random.shuffle(all_indices)
+train_indices = all_indices[:num_train]
+test_indices = all_indices[num_train:num_train + num_test]
 
-# Ensure masks are not empty
-if train_mask.sum().item() == 0:
-    train_mask[0] = True
-if val_mask.sum().item() == 0:
-    val_mask[0] = True
-if test_mask.sum().item() == 0:
-    test_mask[0] = True
+train_mask = torch.zeros(num_nodes, dtype=torch.bool)
+test_mask = torch.zeros(num_nodes, dtype=torch.bool)
+train_mask[train_indices] = True
+test_mask[test_indices] = True
 
 # Training function
 def train():
@@ -142,63 +138,21 @@ def test(mask):
     acc = int(correct.sum()) / int(mask.sum())
     return acc, pred
 
-# Load data and train the model
-try:
-    for epoch in range(200):
-        loss = train()
-        if epoch % 10 == 0:
-            acc, _ = test(test_mask)
-            print(f'Epoch {epoch}, Loss: {loss}, Test Accuracy: {acc}')
-except RuntimeError as e:
-    print(f"Error during training/testing: {e}")
-    raise
+# Train the model
+for epoch in range(200):
+    loss = train()
+    if epoch % 10 == 0:
+        acc, _ = test(test_mask)
+        print(f'Epoch {epoch}, Loss: {loss}, Test Accuracy: {acc}')
 
-# Get predictions for the entire dataset
-try:
-    model.eval()
-    out = model(g, g.ndata['feat'])
-    pred = out.argmax(dim=1)
+# Get predictions for the test dataset
+model.eval()
+out = model(g, g.ndata['feat'])
+pred = out.argmax(dim=1)
 
-    # Print detailed predictions
-    for node_id, prediction in enumerate(pred):
-        print(f"Node {node_id} (Paper ID): Predicted Class: {prediction.item()}")
-
-    # Optionally, return predictions
-    def get_predictions():
-        model.eval()
-        out = model(g, g.ndata['feat'])
-        return out.argmax(dim=1)
-
-    # Get and print predictions
-    predictions = get_predictions()
-    for node_id, prediction in enumerate(predictions):
-        print(f"Node {node_id} (Paper ID): Predicted Class: {prediction.item()}")
-except RuntimeError as e:
-    print(f"Error getting predictions: {e}")
-    raise
-
-
-
-
-#The primary issue with the current training setup is that the model does not appear to be learning. The loss remains zero, and the accuracy is constantly 1.0, indicating that the model's predictions do not change throughout training. This behavior is likely due to several factors:
-
-#Label Imbalance:
-
-#The labels are highly imbalanced, with all nodes having the same label ({0: 50}). This prevents the model from learning to distinguish between different classes since there is no variation in the target labels.
-#Data Features:
-
-#The features used for training might not be informative enough to distinguish between different classes, especially if all nodes belong to the same class.
-#Masks:
-
-#The masks used for training, validation, and testing might not be properly set, resulting in the model not being able to generalize.
-#Steps to Resolve:
-#Balance the Dataset:
-
-#Ensure that the dataset has a variety of labels to allow the model to learn meaningful patterns.
-#Verify Features:
-
-#Ensure that the features used are relevant and informative for the task at hand.
-#Check Masks:
-
-#Ensure that the masks are correctly set and that there is a proper split between training, validation, and testing datasets.
-#Here is a revised version of the code, including additional checks and steps to handle these issues: 
+# Print detailed predictions for test companies
+print("\nTest Companies Predictions:")
+node_id_mapping = {i: node for i, node in enumerate(nx_graph.nodes)}
+for i in test_indices:
+    node_id = node_id_mapping[i]
+    print(f"Company ID: {nx_graph.nodes[node_id]['ID_RSSD']}, Predicted Class: {pred[i].item()}")

@@ -99,5 +99,4 @@ except RuntimeError as e:
     print(f"Error getting predictions: {e}")
     raise
 
-
-#    nx_graph = nx.read_graphml('C:\\Users\\xxbla\\OneDrive\\Documents\\VSCode\\CETA\\CETANN\\Usman\\withoutEdge.graphml')
+#nx_graph = nx.read_graphml('C:\\Users\\xxbla\\OneDrive\\Documents\\VSCode\\CETA\\CETANN\\Usman\\filtered_export.graphml')    nx_graph = nx.read_graphml('C:\\Users\\xxbla\\OneDrive\\Documents\\VSCode\\CETA\\CETANN\\Usman\\withoutEdge.graphml')
