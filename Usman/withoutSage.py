@@ -58,6 +58,12 @@ X_train, X_test, y_train, y_test, id_train, id_test = train_test_split(
 )
 
 # Train a Random Forest Regressor
+
+# Use 110-300 for n_estimators
+# When using predictions use RMSE
+# Which features did it use to make these predictions
+# Feature importance 
+# Look at distribution of lifespans
 model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
 
