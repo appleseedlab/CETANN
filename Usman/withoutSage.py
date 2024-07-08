@@ -14,6 +14,10 @@ attributes = [
     'INSUR_PRI_CD', 'MBR_FHLBS_IND', 'MBR_FRS_IND', 'SEC_RPTG_STATUS',
     'EST_TYPE_CD', 'BNK_TYPE_ANALYS_CD', 'ENTITY_TYPE', 'ACT_PRIM_CD', 'CITY'
 ]
+# add Country Code
+# start using edges and edge features
+# edge: a, b, time of edge
+# want to focus on temporal aspect
 
 # Create a list of nodes and their attributes
 data = []
@@ -64,6 +68,7 @@ X_train, X_test, y_train, y_test, id_train, id_test = train_test_split(
 # Which features did it use to make these predictions
 # Feature importance 
 # Look at distribution of lifespans
+# Use graphsage to predict node labels
 model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
 
