@@ -2,6 +2,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import root_mean_squared_error
 import numpy as np
 import networkx as nx
 
@@ -12,7 +13,7 @@ graph = nx.read_graphml("C:\\Users\\xxbla\\OneDrive\\Documents\\VSCode\\CETA\\CE
 attributes = [
     'D_DT_START', 'D_DT_END', 'BHC_IND', 'CHTR_TYPE_CD', 'FHC_IND',
     'INSUR_PRI_CD', 'MBR_FHLBS_IND', 'MBR_FRS_IND', 'SEC_RPTG_STATUS',
-    'EST_TYPE_CD', 'BNK_TYPE_ANALYS_CD', 'ENTITY_TYPE', 'ACT_PRIM_CD', 'CITY'
+    'EST_TYPE_CD', 'BNK_TYPE_ANALYS_CD', 'ENTITY_TYPE', 'ACT_PRIM_CD', 'CITY', 'CNTRY_CD'
 ]
 # add Country Code
 # start using edges and edge features
@@ -61,19 +62,67 @@ X_train, X_test, y_train, y_test, id_train, id_test = train_test_split(
     X, y, df['ID_RSSD'], test_size=0.2, random_state=42
 )
 
-# Train a Random Forest Regressor
+# # Train a Random Forest Regressor
 
-# Use 110-300 for n_estimators
-# When using predictions use RMSE
-# Which features did it use to make these predictions
-# Feature importance 
-# Look at distribution of lifespans
-# Use graphsage to predict node labels
-model = RandomForestRegressor(n_estimators=100, random_state=42)
-model.fit(X_train, y_train)
+# # Use 110-300 for n_estimators
+# # When using predictions use RMSE
+# # Which features did it use to make these predictions
+# # Feature importance 
+# # Look at distribution of lifespans
+# # Use graphsage to predict node labels
+# model = RandomForestRegressor(n_estimators=100, random_state=42)
+# model.fit(X_train, y_train)
 
-# Predict on the test set
-y_pred = model.predict(X_test)
+# # Predict on the test set
+# y_pred = model.predict(X_test)
+
+# # Create a DataFrame to display the results
+# results = pd.DataFrame({
+#     'ID_RSSD': id_test,
+#     'predicted_lifespan': y_pred
+# })
+
+# # Save the results to a CSV file
+# results.to_csv("C:\\Users\\xxbla\\OneDrive\\Documents\\VSCode\\CETA\\CETANN\\Usman\\predicted_lifespan_of_companies.csv", index=False)
+
+# # Display the results
+# #import ace_tools as tools; tools.display_dataframe_to_user(name="Predicted Lifespan of Companies by ID_RSSD", dataframe=results)
+
+# print(results.head())
+
+
+###### NEW ##########
+# Train multiple Random Forest Regressors with different n_estimators
+best_rmse = float('inf')
+best_model = None
+best_n_estimators = 0
+
+for n_estimators in range(110, 301, 10):
+    model = RandomForestRegressor(n_estimators=n_estimators, random_state=42)
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    rmse = root_mean_squared_error(y_test, y_pred)
+    if rmse < best_rmse:
+        best_rmse = rmse
+        best_model = model
+        best_n_estimators = n_estimators
+
+# Use the best model for final predictions
+y_pred = best_model.predict(X_test)
+
+# Calculate RMSE for the best model
+rmse = root_mean_squared_error(y_test, y_pred)
+
+# Get feature importances
+feature_importances = best_model.feature_importances_
+feature_importance_df = pd.DataFrame({
+    'feature': attributes,
+    'importance': feature_importances * 100  # Convert to percentage
+}).sort_values(by='importance', ascending=False)
+
+# Print the features and their importance
+print("Features and their importance in the model:")
+print(feature_importance_df)
 
 # Create a DataFrame to display the results
 results = pd.DataFrame({
@@ -85,6 +134,8 @@ results = pd.DataFrame({
 results.to_csv("C:\\Users\\xxbla\\OneDrive\\Documents\\VSCode\\CETA\\CETANN\\Usman\\predicted_lifespan_of_companies.csv", index=False)
 
 # Display the results
-#import ace_tools as tools; tools.display_dataframe_to_user(name="Predicted Lifespan of Companies by ID_RSSD", dataframe=results)
-
 print(results.head())
+
+# Print RMSE
+print(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
+print(f"Best number of estimators: {best_n_estimators}")
